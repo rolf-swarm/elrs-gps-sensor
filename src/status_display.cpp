@@ -192,7 +192,7 @@ void StatusDisplay::draw(const crsf::ReceiverStatus &receiver_status,
   const unsigned int gps_baud_khz =
       static_cast<unsigned int>(cappedValue(gps_baud / 1000U, 999));
   const unsigned int gps_checksum_ok =
-      static_cast<unsigned int>(cappedValue(gps_fix.passed_checksum, 9999));
+      static_cast<unsigned int>(cappedValue(gps_fix.passed_checksum, 999999));
   const unsigned int gps_checksum_bad =
       static_cast<unsigned int>(cappedValue(gps_fix.failed_checksum, 9999));
   snprintf(line, sizeof(line), "B%uk O%u E%u", gps_baud_khz,
