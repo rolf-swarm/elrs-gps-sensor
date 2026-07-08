@@ -18,7 +18,7 @@ After that, the status screen refreshes about four times per second.
 CRSF OK RF 2
 LQ  98% RSSI -54
 SNR 12 P 100mW
-GPS FIX sats 10
+GPS FIX S10 T123
 Age 120ms HDOP0.8
 B115k O123 E0
 ```
@@ -66,13 +66,20 @@ SNR -- P --
 ## Line 4: GPS Fix
 
 ```text
-GPS FIX sats 10
-GPS WAIT sats 8
+GPS FIX S10 T123
+GPS OLD S10 T123
+GPS WAIT S8 T0
 ```
 
 `GPS FIX` means the GPS location is valid and fresh enough to be sent as CRSF GPS telemetry.
 
-`GPS WAIT` means the firmware is still receiving GPS data but does not currently have a fresh valid location. `sats` uses the best available satellite count: satellites used in the fix first, then satellites in view if that is all the GPS has reported.
+`GPS OLD` means a location has been seen, but it is currently too old to use. The firmware still sends a CRSF GPS frame once per second with zero position/speed/heading/altitude and the current satellite count.
+
+`GPS WAIT` means the firmware is still receiving GPS data but does not currently have a fresh valid location. The firmware still sends a CRSF GPS frame once per second with zero position/speed/heading/altitude and the current satellite count.
+
+`S` is the best available satellite count: satellites used in the fix first, then satellites in view if that is all the GPS has reported.
+
+`T` is the number of GPS CRSF telemetry frames attempted since boot, capped on the display at `9999`. It should increase about once per second even before a position fix. If `T` increases but EdgeTX still logs no GPS, focus on the board TX to receiver RX direction, receiver CRSF configuration, and telemetry discovery/logging on the radio.
 
 ## Line 5: GPS Age and HDOP
 
@@ -103,7 +110,7 @@ The `O` counter is capped at `999999` on the OLED. The `E` counter is capped at 
 
 CRSF values come from incoming receiver-to-board CRSF frames on the CRSF UART. The parser watches RC frames and link-statistics frames, including `0x14`, `0x1C`, and `0x1D`.
 
-GPS values come from the M10Q NMEA stream. The display does not change the GPS telemetry schedule; valid fresh GPS fixes are still sent to the receiver once per second.
+GPS values come from the M10Q NMEA stream. The display does not change the GPS telemetry schedule; a CRSF GPS frame is sent to the receiver once per second. When no fresh fix exists, latitude, longitude, speed, heading, and altitude are sent as zero, while the current satellite count is still included.
 
 ## Reading Quality Values
 
@@ -179,15 +186,15 @@ Bad: power is high while `LQ` is poor. That usually means the link is struggling
 ## GPS Fix, Satellites, Age, and HDOP
 
 ```text
-GPS FIX sats 10
+GPS FIX S10 T123
 Age 120ms HDOP0.8
 ```
 
-Good: `GPS FIX`, `8+` satellites, `Age` below `1000ms`, and `HDOP` below about `1.5`.
+Good: `GPS FIX`, `8+` satellites, `T` increasing about once per second, `Age` below `1000ms`, and `HDOP` below about `1.5`.
 
-Medium: `GPS FIX`, `5-7` satellites, `Age` below `3000ms`, or `HDOP` around `1.5-3.0`.
+Medium: `GPS FIX`, `5-7` satellites, `T` increasing, `Age` below `3000ms`, or `HDOP` around `1.5-3.0`.
 
-Bad: `GPS WAIT`, fewer than `5` satellites, `Age` stuck high, or `HDOP` above `3.0`. Move the GPS antenna to open sky and away from noisy electronics.
+Bad: `T` stuck at `0`, fewer than `5` satellites, `Age` stuck high, or `HDOP` above `3.0`. `GPS WAIT` or `GPS OLD` with `T` increasing means telemetry frames are going out, but the position fields are intentionally zero until a fresh fix exists.
 
 ## GPS Checksum Counters
 

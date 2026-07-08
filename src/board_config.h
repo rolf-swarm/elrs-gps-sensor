@@ -79,6 +79,7 @@ inline void beginI2c() {
 #else
   Wire.begin();
 #endif
+  Wire.setClock(400000);
 }
 
 inline void printPinSummary(Print &out) {

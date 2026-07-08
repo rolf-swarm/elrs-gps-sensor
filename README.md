@@ -2,7 +2,7 @@
 
 Small PlatformIO/Arduino firmware for sending GPS coordinates from a u-blox M10Q-style GPS module into a RadioMaster RP2 ExpressLRS receiver as standard CRSF GPS telemetry.
 
-The GPS module is read as NMEA over UART with TinyGPSPlus. The board forwards a valid, fresh GPS fix to the RP2 once per second as a CRSF GPS frame. Teensy 4.1 and TinyPICO builds are supported.
+The GPS module is read as NMEA over UART with TinyGPSPlus. The board sends a CRSF GPS frame to the RP2 once per second. With a fresh position fix it sends real coordinates; without a fix it sends zero position/speed/heading/altitude plus the current satellite count. Teensy 4.1 and TinyPICO builds are supported.
 
 ## Build
 
@@ -99,7 +99,7 @@ That gives about 3.3 V at the Teensy from a 5 V UART high. Use the divider only 
 - USB debug serial at 115200 baud.
 - CRSF UART at 420000 baud.
 - GPS module UART auto-scanning `9600`, `38400`, `57600`, and `115200` baud.
-- Real GPS fix forwarded once per second when fresh.
+- CRSF GPS frame sent once per second. Without a fresh GPS fix, position/speed/heading/altitude are sent as zero while satellite count is still reported.
 - Incoming CRSF frames are parsed for RC/link status.
 - Optional VMA438/WPI438 SSD1306 OLED on I2C address `0x3C` or `0x3D`; if not found, the firmware keeps running without display output.
 
@@ -111,7 +111,7 @@ When an OLED is present, the firmware first shows `ELRS GPS Sensor` and `OLED on
 CRSF OK RF 2
 LQ  98% RSSI -54
 SNR 12 P 100mW
-GPS FIX sats 10
+GPS FIX S10 T123
 Age 120ms HDOP0.8
 B115k O123 E0
 ```
@@ -124,8 +124,9 @@ Line meaning:
 - `RSSI`: uplink RSSI in dBm, using the active antenna when reported.
 - `SNR`: uplink signal-to-noise ratio in dB.
 - `P`: transmitter power decoded from CRSF link statistics. `P --` means it was not available.
-- `GPS FIX` or `GPS WAIT`: whether the GPS location is valid and fresh.
-- `sats`: best available satellite count.
+- `GPS FIX`, `GPS OLD`, or `GPS WAIT`: whether the GPS location is fresh, stale, or not valid yet.
+- `S`: best available satellite count.
+- `T`: GPS CRSF telemetry frames attempted, capped on the display at `9999`.
 - `Age`: GPS location age in milliseconds.
 - `HDOP`: GPS horizontal dilution of precision when reported.
 - `B`: active GPS UART baud in kbaud.

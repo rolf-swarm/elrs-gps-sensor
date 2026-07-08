@@ -51,8 +51,20 @@ uint32_t bestSatelliteCount(const GpsFixData &fix) {
   return 0;
 }
 
-bool gpsFixFresh(const GpsFixData &fix) {
+bool gpsLocationFresh(const GpsFixData &fix) {
   return fix.location_valid && fix.location_age_ms <= GPS_FIX_FRESH_MS;
+}
+
+const char *gpsStateLabel(const GpsFixData &fix) {
+  if (!fix.location_valid) {
+    return "WAIT";
+  }
+
+  if (!gpsLocationFresh(fix)) {
+    return "OLD";
+  }
+
+  return "FIX";
 }
 
 uint32_t cappedValue(uint32_t value, uint32_t maximum) {
@@ -102,7 +114,8 @@ void StatusDisplay::begin() {
 }
 
 void StatusDisplay::update(const crsf::ReceiverStatus &receiver_status,
-                           const GpsFixData &gps_fix, uint32_t gps_baud) {
+                           const GpsFixData &gps_fix, uint32_t gps_baud,
+                           uint32_t gps_telemetry_frames_sent) {
   if (!available_) {
     return;
   }
@@ -113,7 +126,7 @@ void StatusDisplay::update(const crsf::ReceiverStatus &receiver_status,
   }
 
   last_update_ms_ = now_ms;
-  draw(receiver_status, gps_fix, gps_baud);
+  draw(receiver_status, gps_fix, gps_baud, gps_telemetry_frames_sent);
 }
 
 bool StatusDisplay::available() const {
@@ -126,10 +139,10 @@ bool StatusDisplay::probeAddress(uint8_t address) const {
 }
 
 void StatusDisplay::draw(const crsf::ReceiverStatus &receiver_status,
-                         const GpsFixData &gps_fix, uint32_t gps_baud) {
+                         const GpsFixData &gps_fix, uint32_t gps_baud,
+                         uint32_t gps_telemetry_frames_sent) {
   const uint32_t now_ms = millis();
   const bool have_link_stats = linkStatsFresh(receiver_status, now_ms);
-  const bool have_gps_fix = gpsFixFresh(gps_fix);
   const crsf::LinkStatistics &link = receiver_status.link;
   char line[24];
 
@@ -170,9 +183,11 @@ void StatusDisplay::draw(const crsf::ReceiverStatus &receiver_status,
   }
   drawTextLine(display_, 2, line);
 
-  snprintf(line, sizeof(line), "GPS %s sats %lu",
-           have_gps_fix ? "FIX" : "WAIT",
-           static_cast<unsigned long>(bestSatelliteCount(gps_fix)));
+  snprintf(line, sizeof(line), "GPS %s S%lu T%lu",
+           gpsStateLabel(gps_fix),
+           static_cast<unsigned long>(bestSatelliteCount(gps_fix)),
+           static_cast<unsigned long>(
+               cappedValue(gps_telemetry_frames_sent, 9999)));
   drawTextLine(display_, 3, line);
 
   if (gps_fix.hdop_valid) {
